@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { atTime, formatCountdown, toDateKey } from '../src/domain/date';
 import { planNotifications } from '../src/domain/plan';
 import { nextPrayer, OFFICIAL_LAST_DAY, officialDaysLeft, timesFor } from '../src/domain/times';
-import { applyFix, distanceKm, methodForCountry } from '../src/domain/travel';
+import { applyFix, describePrompt, distanceKm, methodForCountry, placeKey } from '../src/domain/travel';
 import { SINGAPORE, type LocationSettings } from '../src/domain/types';
 
 const LONDON: LocationSettings = {
@@ -124,5 +124,27 @@ describe('travel', () => {
   it('applies a nearby fix when the user asked for it', () => {
     const near = { lat: 1.4, lon: 103.9, label: null, countryCode: 'SG' };
     expect(applyFix(SINGAPORE, near, { force: true })?.label).toBe('1.40, 103.90');
+  });
+});
+
+describe('placeKey / describePrompt', () => {
+  it('keys a place coarsely, so a few kilometres do not count as somewhere new', () => {
+    expect(placeKey({ lat: 51.5, lon: -0.12, countryCode: 'GB' })).toBe(placeKey({ lat: 51.4, lon: -0.2, countryCode: 'GB' }));
+    expect(placeKey({ lat: 51.5, lon: -0.12, countryCode: 'GB' })).not.toBe(placeKey(SINGAPORE));
+  });
+
+  it('asks about the new place when abroad', () => {
+    const prompt = describePrompt(SINGAPORE, LONDON);
+    expect(prompt.title).toBe('You appear to be in London, United Kingdom');
+    expect(prompt.message).toContain('Singapore');
+    expect(prompt.acceptLabel).toBe('Update times');
+    expect(prompt.declineLabel).toBe('Keep Singapore');
+  });
+
+  it('offers the official timetable when back in Singapore', () => {
+    const prompt = describePrompt(LONDON, SINGAPORE);
+    expect(prompt.title).toBe('Back in Singapore?');
+    expect(prompt.acceptLabel).toBe('Use Singapore times');
+    expect(prompt.declineLabel).toBe('Keep London, United Kingdom');
   });
 });

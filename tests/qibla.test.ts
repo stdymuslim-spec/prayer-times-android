@@ -1,6 +1,16 @@
 import { describe, expect, it } from 'vitest';
 
-import { distanceToKaabaKm, KAABA, normalizeDegrees, qiblaBearing, turnToFace } from '../src/domain/qibla';
+import {
+  compassPoint,
+  distanceToKaabaKm,
+  isFacing,
+  KAABA,
+  normalizeDegrees,
+  qiblaBearing,
+  smoothAngle,
+  turnInstruction,
+  turnToFace,
+} from '../src/domain/qibla';
 
 describe('qiblaBearing', () => {
   // Well-known Qibla bearings (degrees from true north), allowing 1 degree.
@@ -52,5 +62,43 @@ describe('helpers', () => {
   it('measures about 7,000 km from Singapore to Mecca', () => {
     expect(distanceToKaabaKm({ lat: 1.3521, lon: 103.8198 })).toBeGreaterThan(6800);
     expect(distanceToKaabaKm({ lat: 1.3521, lon: 103.8198 })).toBeLessThan(7300);
+  });
+});
+
+
+describe('smoothAngle', () => {
+  it('starts at the first reading', () => {
+    expect(smoothAngle(null, 123)).toBe(123);
+  });
+  it('moves part of the way towards the new reading', () => {
+    expect(smoothAngle(100, 120, 0.25)).toBeCloseTo(105, 0);
+  });
+  it('averages across north rather than through south', () => {
+    const mid = smoothAngle(350, 10, 0.5);
+    expect(Math.min(mid, 360 - mid)).toBeLessThan(1);
+  });
+});
+
+describe('compassPoint', () => {
+  it('names the direction', () => {
+    expect(compassPoint(0)).toBe('N');
+    expect(compassPoint(293)).toBe('NW');
+    expect(compassPoint(359)).toBe('N');
+    expect(compassPoint(90)).toBe('E');
+    expect(compassPoint(181)).toBe('S');
+  });
+});
+
+describe('facing', () => {
+  it('is within 3 degrees either side, across north too', () => {
+    expect(isFacing(293, 293)).toBe(true);
+    expect(isFacing(290.5, 293)).toBe(true);
+    expect(isFacing(280, 293)).toBe(false);
+    expect(isFacing(359, 1)).toBe(true);
+  });
+  it('tells you which way to turn', () => {
+    expect(turnInstruction(250, 293)).toBe('Turn 43° right');
+    expect(turnInstruction(320, 293)).toBe('Turn 27° left');
+    expect(turnInstruction(293, 293)).toBe('Facing the Qibla');
   });
 });

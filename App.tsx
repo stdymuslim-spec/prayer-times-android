@@ -1,19 +1,20 @@
 import * as IntentLauncher from 'expo-intent-launcher';
 import { StatusBar } from 'expo-status-bar';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { AppState, Linking, Platform, Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
+import { Alert, AppState, BackHandler, Linking, Platform, Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 
 import { formatClock, formatCountdown, atTime, toDateKey } from './src/domain/date';
 import { formatHijri, hijriFor } from './src/domain/hijri';
 import { nextPrayer, officialDaysLeft, timesFor } from './src/domain/times';
-import { applyFix } from './src/domain/travel';
+import { applyFix, describePrompt, placeKey } from './src/domain/travel';
 import { PRAYER_NAMES, SINGAPORE, type PrayerName, type Settings } from './src/domain/types';
 import { buildWidgetPayload } from './src/domain/widget';
 import { setScreensaverMinutes, setWidgetData } from './modules/prayer-widget';
 import * as locationService from './src/services/location';
 import * as notifications from './src/services/notifications';
 import { loadSettings, saveSettings } from './src/services/storage';
+import { QiblaScreen } from './src/ui/QiblaScreen';
 import { usePalette, type Palette } from './src/theme';
 
 const PACKAGE = 'com.stdymuslim.prayertimes';
@@ -39,6 +40,11 @@ function Main() {
   const [now, setNow] = useState(() => new Date());
   const [allowed, setAllowed] = useState(true);
   const [status, setStatus] = useState<string | null>(null);
+  const [screen, setScreen] = useState<'home' | 'qibla'>('home');
+  // Somewhere the phone is that differs from the saved location, waiting for the user to decide.
+  const [candidate, setCandidate] = useState<Settings['location'] | null>(null);
+  const askedFor = useRef<string | null>(null);
+  const lastChecked = useRef(0);
   const settingsRef = useRef(settings);
   settingsRef.current = settings;
 
@@ -56,18 +62,47 @@ function Main() {
     }
   }, []);
 
-  // On open and on return to the app: refresh permission, follow the phone if it travelled, requeue.
+  // Where is the phone now? If it is somewhere other than the saved location, ask; never switch silently.
+  const checkPlace = useCallback(async () => {
+    // At most every ten minutes: one fix each time the app is brought to the front is plenty.
+    if (Date.now() - lastChecked.current < 10 * 60_000) return;
+    lastChecked.current = Date.now();
+    const fix = await locationService.checkFix();
+    if (!fix) return;
+    const current = settingsRef.current;
+    const moved = applyFix(current.location, fix);
+    if (!moved) {
+      setCandidate(null);
+      return;
+    }
+    setCandidate(moved);
+    const key = placeKey(moved);
+    if (current.declinedPlace === key || askedFor.current === key) return;
+    askedFor.current = key;
+    const prompt = describePrompt(current.location, moved);
+    Alert.alert(prompt.title, prompt.message, [
+      { text: prompt.declineLabel, style: 'cancel', onPress: () => declinePlace(key) },
+      { text: prompt.acceptLabel, onPress: () => acceptPlace(moved) },
+    ]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const acceptPlace = (place: Settings['location']) => {
+    setCandidate(null);
+    apply({ ...settingsRef.current, location: place, declinedPlace: undefined });
+  };
+
+  const declinePlace = (key: string) => {
+    apply({ ...settingsRef.current, declinedPlace: key });
+  };
+
+  // On open and on return to the app: refresh permission, requeue, then check where the phone is.
   const refresh = useCallback(async () => {
     setNow(new Date());
     setAllowed(await notifications.notificationsAllowed());
-    let next = settingsRef.current;
-    if (next.location.source === 'gps') {
-      const fix = await locationService.quietFix();
-      const moved = fix ? applyFix(next.location, fix) : null;
-      if (moved) next = { ...next, location: moved };
-    }
-    await apply(next);
-  }, [apply]);
+    await apply(settingsRef.current);
+    await checkPlace();
+  }, [apply, checkPlace]);
 
   useEffect(() => {
     (async () => {
@@ -80,6 +115,15 @@ function Main() {
     });
     return () => sub.remove();
   }, [refresh]);
+
+  useEffect(() => {
+    if (screen !== 'qibla') return;
+    const sub = BackHandler.addEventListener('hardwareBackPress', () => {
+      setScreen('home');
+      return true;
+    });
+    return () => sub.remove();
+  }, [screen]);
 
   useEffect(() => {
     const timer = setInterval(() => setNow(new Date()), 15_000);
@@ -124,6 +168,15 @@ function Main() {
     }
   };
 
+  if (screen === 'qibla') {
+    return (
+      <SafeAreaView style={[styles.screen, { backgroundColor: c.bg }]}>
+        <StatusBar style={c.bg === '#0F1512' ? 'light' : 'dark'} />
+        <QiblaScreen location={settings.location} onBack={() => setScreen('home')} />
+      </SafeAreaView>
+    );
+  }
+
   return (
     <SafeAreaView style={[styles.screen, { backgroundColor: c.bg }]}>
       <StatusBar style={c.bg === '#0F1512' ? 'light' : 'dark'} />
@@ -138,6 +191,37 @@ function Main() {
         <Text style={[styles.place, { color: c.text }]}>
           {settings.location.label} · {day.source === 'official' ? 'Official timetable' : 'Calculated'}
         </Text>
+
+        {candidate && settings.declinedPlace !== placeKey(candidate) ? (
+          <View style={[styles.card, styles.banner, { backgroundColor: c.card, borderColor: c.warn }]}>
+            <Text style={[styles.rowName, styles.bold, { color: c.text }]}>
+              {describePrompt(settings.location, candidate).title}
+            </Text>
+            <Text style={[styles.note, styles.bannerText, { color: c.muted }]}>
+              {describePrompt(settings.location, candidate).message}
+            </Text>
+            <View style={styles.chips}>
+              <Pressable
+                accessibilityRole="button"
+                onPress={() => acceptPlace(candidate)}
+                style={[styles.chip, { borderColor: c.accent, backgroundColor: c.accent }]}
+              >
+                <Text style={{ color: c.accentText, fontWeight: '600' }}>
+                  {describePrompt(settings.location, candidate).acceptLabel}
+                </Text>
+              </Pressable>
+              <Pressable
+                accessibilityRole="button"
+                onPress={() => declinePlace(placeKey(candidate))}
+                style={[styles.chip, { borderColor: c.line }]}
+              >
+                <Text style={{ color: c.text, fontWeight: '600' }}>
+                  {describePrompt(settings.location, candidate).declineLabel}
+                </Text>
+              </Pressable>
+            </View>
+          </View>
+        ) : null}
 
         <View style={[styles.hero, { backgroundColor: c.card, borderColor: c.line }]}>
           {next ? (
@@ -170,6 +254,8 @@ function Main() {
             );
           })}
         </View>
+
+        <Action c={c} title="Qibla compass" onPress={() => setScreen('qibla')} />
 
         {daysLeft !== null && daysLeft < 14 ? (
           <Text style={[styles.warn, { color: c.warn }]}>
@@ -304,6 +390,8 @@ const styles = StyleSheet.create({
   action: { borderRadius: 14, borderWidth: 1, paddingVertical: 14, alignItems: 'center' },
   actionText: { fontSize: 16, fontWeight: '600' },
   note: { fontSize: 13, textAlign: 'center' },
+  banner: { paddingVertical: 14, gap: 6 },
+  bannerText: { textAlign: 'left' },
   cardTitle: { fontWeight: '600', marginTop: 10 },
   cardNote: { textAlign: 'left', marginTop: 4 },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 12 },

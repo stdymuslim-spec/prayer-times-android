@@ -77,3 +77,33 @@ export function applyFix(
     calculationMethod: methodForCountry(fix.countryCode),
   };
 }
+
+/** A coarse identity for a place (country plus a 5-degree cell), so "Not now" is remembered per area, not per metre. */
+export function placeKey(place: { lat: number; lon: number; countryCode: string | null }): string {
+  return `${place.countryCode ?? '??'}:${Math.floor(place.lat / 5)}:${Math.floor(place.lon / 5)}`;
+}
+
+export interface PlacePrompt {
+  title: string;
+  message: string;
+  acceptLabel: string;
+  declineLabel: string;
+}
+
+/** What to ask when the phone is somewhere other than the saved location. */
+export function describePrompt(saved: LocationSettings, candidate: LocationSettings): PlacePrompt {
+  if (candidate.countryCode?.toUpperCase() === 'SG') {
+    return {
+      title: 'Back in Singapore?',
+      message: `You appear to be in Singapore again. Switch back to the official Singapore timetable?`,
+      acceptLabel: 'Use Singapore times',
+      declineLabel: `Keep ${saved.label}`,
+    };
+  }
+  return {
+    title: `You appear to be in ${candidate.label}`,
+    message: `Your prayer times are for ${saved.label}. Update them for ${candidate.label}? They will be calculated for where you are.`,
+    acceptLabel: 'Update times',
+    declineLabel: `Keep ${saved.label}`,
+  };
+}

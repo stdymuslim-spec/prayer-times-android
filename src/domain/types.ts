@@ -41,6 +41,8 @@ export interface Settings {
   reminderMinutes: number;
   /** Minutes the screensaver stays lit before going black; 0 means it never does. */
   screensaverMinutes: number;
+  /** placeKey of a place the user chose not to switch to, so it is not asked about again. */
+  declinedPlace?: string;
   location: LocationSettings;
 }
 
