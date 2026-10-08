@@ -18,13 +18,13 @@ ASSETS = Path(__file__).resolve().parent.parent / "assets"
 SS = 4  # supersampling
 
 
-def crescent_mask(size, height_fraction, tilt_degrees=-35):
+def crescent_mask(size, height_fraction, tilt_degrees=45):
     """A crescent as an 'L' mask, centred on the canvas, `height_fraction` of its height."""
     big = size * SS
     r_out = big * height_fraction / 2
     r_in = r_out * 0.80
     offset = r_out * 0.42
-    # Cut the inner circle out towards the upper right, then tilt the whole shape.
+    # Cut the inner circle out towards the right, then tilt the shape so it opens up and to the right.
     mask = Image.new("L", (big, big), 0)
     d = ImageDraw.Draw(mask)
     cx = cy = big / 2
