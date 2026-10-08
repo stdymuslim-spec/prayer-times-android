@@ -50,3 +50,8 @@ modules/**/android/.cxx/
 
 # Notification sounds are not distributed with the source (see README); add your own here.
 assets/audio/*.mp3
+
+# Release signing key: never commit, back it up somewhere safe
+.signing/
+*.jks
+*.keystore
