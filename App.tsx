@@ -10,14 +10,18 @@ import { nextPrayer, officialDaysLeft, timesFor } from './src/domain/times';
 import { applyFix, describePrompt, placeKey } from './src/domain/travel';
 import { PRAYER_NAMES, SINGAPORE, type PrayerName, type Settings } from './src/domain/types';
 import { buildWidgetPayload } from './src/domain/widget';
-import { setScreensaverMinutes, setWidgetData } from './modules/prayer-widget';
+import {
+  createSoundChannel,
+  deleteSoundChannel,
+  pickNotificationSound,
+  setScreensaverMinutes,
+  setWidgetData,
+} from './modules/prayer-widget';
 import * as locationService from './src/services/location';
 import * as notifications from './src/services/notifications';
 import { loadSettings, saveSettings } from './src/services/storage';
 import { QiblaScreen } from './src/ui/QiblaScreen';
 import { usePalette, type Palette } from './src/theme';
-
-const APP_PACKAGE = 'com.stdymuslim.prayertimes';
 
 const SCREENSAVER_CHOICES = [
   { label: '5 min', minutes: 5 },
@@ -148,15 +152,31 @@ function Main() {
     setStatus(null);
   };
 
-  // Android keeps the sound with each notification type, so its own settings page is the picker:
-  // any system sound, or "add" one of your own audio files.
-  const openSoundSettings = (kind: 'reminder' | 'prayer') =>
-    IntentLauncher.startActivityAsync('android.settings.CHANNEL_NOTIFICATION_SETTINGS', {
-      extra: {
-        'android.provider.extra.APP_PACKAGE': APP_PACKAGE,
-        'android.provider.extra.CHANNEL_ID': notifications.soundChannelId(kind),
-      },
-    }).catch(() => Linking.openSettings());
+  // Opens Android's sound picker. Android keeps a sound with its channel and never lets an app change
+  // it, so each pick creates a new channel and the old pick's channel is removed.
+  const chooseSound = async (kind: 'reminder' | 'prayer') => {
+    try {
+      const current = settings.sounds?.[kind];
+      const picked = await pickNotificationSound(current?.uri ?? null);
+      if (!picked) return;
+      const channelId = `${kind}-custom-${Date.now()}`;
+      createSoundChannel(channelId, kind === 'reminder' ? 'Reminder before prayer (your sound)' : 'Prayer time (your sound)', picked.uri);
+      if (current) deleteSoundChannel(current.channelId);
+      await apply({ ...settings, sounds: { ...settings.sounds, [kind]: { uri: picked.uri, title: picked.title, channelId } } });
+      setStatus(null);
+    } catch (e) {
+      setStatus(`Could not change the sound: ${(e as Error).message}`);
+    }
+  };
+
+  const resetSound = async (kind: 'reminder' | 'prayer') => {
+    const current = settings.sounds?.[kind];
+    if (!current) return;
+    deleteSoundChannel(current.channelId);
+    const rest = { ...settings.sounds };
+    delete rest[kind];
+    await apply({ ...settings, sounds: rest });
+  };
 
   const testPrayer: PrayerName = next?.name ?? 'Asar';
 
@@ -306,17 +326,32 @@ function Main() {
         ) : null}
         <View style={[styles.card, { backgroundColor: c.card, borderColor: c.line }]}>
           <Text style={[styles.rowName, styles.cardTitle, { color: c.text }]}>Sounds</Text>
-          <Text style={[styles.note, styles.cardNote, { color: c.muted }]}>
-            Choose any notification sound, or add your own audio file, in Android&apos;s sound settings.
+          {(['reminder', 'prayer'] as const).map((kind) => {
+            const chosen = settings.sounds?.[kind];
+            return (
+              <View key={kind} style={styles.soundRow}>
+                <View style={styles.soundText}>
+                  <Text style={[styles.soundLabel, { color: c.text }]}>
+                    {kind === 'reminder' ? `${settings.reminderMinutes}-minute reminder` : 'Call to prayer'}
+                  </Text>
+                  <Text style={[styles.note, styles.cardNote, { color: c.muted }]} numberOfLines={1}>
+                    {chosen ? chosen.title : notifications.builtInSoundName(kind)}
+                  </Text>
+                </View>
+                {chosen ? (
+                  <Pressable accessibilityRole="button" onPress={() => resetSound(kind)} style={styles.soundLink}>
+                    <Text style={[styles.actionText, { color: c.muted }]}>Reset</Text>
+                  </Pressable>
+                ) : null}
+                <Pressable accessibilityRole="button" onPress={() => chooseSound(kind)} style={styles.soundLink}>
+                  <Text style={[styles.actionText, { color: c.accent }]}>Change</Text>
+                </Pressable>
+              </View>
+            );
+          })}
+          <Text style={[styles.note, styles.cardNote, styles.soundHint, { color: c.muted }]}>
+            Pick any notification sound. To use your own audio file, choose the add option in the picker.
           </Text>
-          <Pressable accessibilityRole="button" onPress={() => openSoundSettings('reminder')}>
-            <Text style={[styles.actionText, styles.cardLink, { color: c.accent }]}>
-              Change the {settings.reminderMinutes}-minute reminder sound
-            </Text>
-          </Pressable>
-          <Pressable accessibilityRole="button" onPress={() => openSoundSettings('prayer')}>
-            <Text style={[styles.actionText, styles.cardLink, { color: c.accent }]}>Change the call to prayer sound</Text>
-          </Pressable>
         </View>
         <View style={[styles.card, { backgroundColor: c.card, borderColor: c.line }]}>
           <Text style={[styles.rowName, styles.cardTitle, { color: c.text }]}>Screen saver</Text>
@@ -421,6 +456,11 @@ const styles = StyleSheet.create({
   bannerText: { textAlign: 'left' },
   footer: { alignItems: 'center', gap: 2, marginTop: 8, marginBottom: 12 },
   footerName: { fontSize: 14, fontWeight: '600' },
+  soundRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 8, gap: 4 },
+  soundText: { flex: 1 },
+  soundLabel: { fontSize: 16, fontWeight: '600' },
+  soundLink: { paddingVertical: 8, paddingHorizontal: 10 },
+  soundHint: { marginBottom: 12, marginTop: 4 },
   cardTitle: { fontWeight: '600', marginTop: 10 },
   cardNote: { textAlign: 'left', marginTop: 4 },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 12 },

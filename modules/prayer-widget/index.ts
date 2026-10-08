@@ -4,7 +4,15 @@ import { Platform } from 'react-native';
 type PrayerWidgetNative = {
   setData(json: string): void;
   setScreensaverMinutes(minutes: number): void;
+  pickNotificationSound(existingUri: string | null): Promise<PickedSound | null>;
+  createSoundChannel(id: string, name: string, uri: string): void;
+  deleteSoundChannel(id: string): void;
 };
+
+export interface PickedSound {
+  uri: string;
+  title: string;
+}
 
 function native(): PrayerWidgetNative | null {
   if (Platform.OS !== 'android') return null;
@@ -28,6 +36,23 @@ export function setWidgetData(json: string): void {
 export function setScreensaverMinutes(minutes: number): void {
   try {
     native()?.setScreensaverMinutes(minutes);
+  } catch {
+    // ignore
+  }
+}
+
+/** Opens Android's notification sound picker. Null if the user backs out. */
+export async function pickNotificationSound(existingUri: string | null): Promise<PickedSound | null> {
+  return (await native()?.pickNotificationSound(existingUri)) ?? null;
+}
+
+export function createSoundChannel(id: string, name: string, uri: string): void {
+  native()?.createSoundChannel(id, name, uri);
+}
+
+export function deleteSoundChannel(id: string): void {
+  try {
+    native()?.deleteSoundChannel(id);
   } catch {
     // ignore
   }

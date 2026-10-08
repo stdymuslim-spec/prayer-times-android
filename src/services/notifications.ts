@@ -10,7 +10,7 @@ import * as Notifications from 'expo-notifications';
 import { Platform } from 'react-native';
 
 import { planNotifications } from '../domain/plan';
-import type { PrayerName, Settings } from '../domain/types';
+import type { ChosenSound, PrayerName, Settings } from '../domain/types';
 
 type Kind = 'reminder' | 'prayer';
 
@@ -44,13 +44,16 @@ const SOUND: Record<Kind, string> = {
   prayer: bundled.call_to_prayer ? 'call_to_prayer' : 'default',
 };
 
-/** The Android channel whose sound the user can change in system settings. */
-export function soundChannelId(kind: Kind): string {
-  return CHANNELS[kind].chime;
+/** What the sound is called when the user hasn't picked one. */
+export function builtInSoundName(kind: Kind): string {
+  if (kind === 'reminder') return bundled.reminder ? 'Built-in chime' : 'Android default';
+  return bundled.call_to_prayer ? 'Built-in call to prayer' : 'Android default';
 }
 
-export function channelFor(kind: Kind, silent: boolean): string {
-  return silent ? CHANNELS[kind].quiet : CHANNELS[kind].chime;
+/** The channel to post on: the user's own sound if they picked one, else the built-in one. */
+export function channelFor(kind: Kind, silent: boolean, chosen?: Partial<Record<Kind, ChosenSound>>): string {
+  if (silent) return CHANNELS[kind].quiet;
+  return chosen?.[kind]?.channelId ?? CHANNELS[kind].chime;
 }
 
 export async function configureNotifications(): Promise<void> {
@@ -111,7 +114,7 @@ export async function reschedule(settings: Settings, now = new Date()): Promise<
       trigger: {
         type: Notifications.SchedulableTriggerInputTypes.DATE,
         date: item.fireAt,
-        channelId: channelFor(item.kind, settings.silent),
+        channelId: channelFor(item.kind, settings.silent, settings.sounds),
       },
     });
   }
@@ -129,7 +132,7 @@ export async function sendTest(kind: Kind, settings: Settings, prayer: PrayerNam
       data: { kind, prayer, test: true },
     },
     // A channel-only trigger posts immediately.
-    trigger: { channelId: channelFor(kind, settings.silent) },
+    trigger: { channelId: channelFor(kind, settings.silent, settings.sounds) },
   });
   // Check up to ~2 seconds for it to appear, stopping as soon as it does.
   for (let waited = 0; waited < 2000; waited += 250) {

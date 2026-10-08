@@ -33,6 +33,14 @@ export interface LocationSettings {
   calculationMethod: CalculationMethod;
 }
 
+/** A notification sound the user picked, with the channel that carries it. */
+export interface ChosenSound {
+  uri: string;
+  title: string;
+  /** Android keeps a sound with its channel, so each choice gets its own. */
+  channelId: string;
+}
+
 export interface Settings {
   /** Pop-ups only, no sound. */
   silent: boolean;
@@ -43,6 +51,8 @@ export interface Settings {
   screensaverMinutes: number;
   /** placeKey of a place the user chose not to switch to, so it is not asked about again. */
   declinedPlace?: string;
+  /** Sounds the user picked; a missing entry means the built-in sound. */
+  sounds?: Partial<Record<'reminder' | 'prayer', ChosenSound>>;
   location: LocationSettings;
 }
 
