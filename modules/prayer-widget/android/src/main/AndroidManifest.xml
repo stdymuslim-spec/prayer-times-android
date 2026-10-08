@@ -11,5 +11,18 @@
         android:name="android.appwidget.provider"
         android:resource="@xml/prayer_widget_info" />
     </receiver>
+    <service
+      android:name=".PrayerDreamService"
+      android:exported="true"
+      android:label="@string/prayer_dream_label"
+      android:permission="android.permission.BIND_DREAM_SERVICE">
+      <intent-filter>
+        <action android:name="android.service.dreams.DreamService" />
+        <category android:name="android.intent.category.DEFAULT" />
+      </intent-filter>
+      <meta-data
+        android:name="android.service.dream"
+        android:resource="@xml/prayer_dream" />
+    </service>
   </application>
 </manifest>

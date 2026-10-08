@@ -39,6 +39,8 @@ export interface Settings {
   /** No notifications at all. */
   paused: boolean;
   reminderMinutes: number;
+  /** Minutes the screensaver stays lit before going black; 0 means it never does. */
+  screensaverMinutes: number;
   location: LocationSettings;
 }
 
@@ -55,5 +57,6 @@ export const DEFAULT_SETTINGS: Settings = {
   silent: false,
   paused: false,
   reminderMinutes: 10,
+  screensaverMinutes: 10,
   location: SINGAPORE,
 };

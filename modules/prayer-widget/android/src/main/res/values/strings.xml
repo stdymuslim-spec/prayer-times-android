@@ -1,4 +1,5 @@
 <resources>
   <string name="prayer_widget_label">Prayer Times</string>
   <string name="prayer_widget_description">Today\'s date in Gregorian and Hijri, with a countdown to the next prayer.</string>
+  <string name="prayer_dream_label">Prayer Times</string>
 </resources>

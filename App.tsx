@@ -10,13 +10,20 @@ import { nextPrayer, officialDaysLeft, timesFor } from './src/domain/times';
 import { applyFix } from './src/domain/travel';
 import { PRAYER_NAMES, SINGAPORE, type PrayerName, type Settings } from './src/domain/types';
 import { buildWidgetPayload } from './src/domain/widget';
-import { setWidgetData } from './modules/prayer-widget';
+import { setScreensaverMinutes, setWidgetData } from './modules/prayer-widget';
 import * as locationService from './src/services/location';
 import * as notifications from './src/services/notifications';
 import { loadSettings, saveSettings } from './src/services/storage';
 import { usePalette, type Palette } from './src/theme';
 
 const PACKAGE = 'com.stdymuslim.prayertimes';
+
+const SCREENSAVER_CHOICES = [
+  { label: '5 min', minutes: 5 },
+  { label: '10 min', minutes: 10 },
+  { label: '30 min', minutes: 30 },
+  { label: 'Always on', minutes: 0 },
+];
 
 export default function App() {
   return (
@@ -41,6 +48,7 @@ function Main() {
     saveSettings(next);
     // The widget has its own copy of the next two weeks; keep it current whenever anything changes.
     setWidgetData(JSON.stringify(buildWidgetPayload(new Date(), next.location)));
+    setScreensaverMinutes(next.screensaverMinutes);
     try {
       await notifications.reschedule(next);
     } catch {
@@ -200,6 +208,38 @@ function Main() {
         {settings.location.source === 'gps' ? (
           <Action c={c} title="Back to Singapore" onPress={() => apply({ ...settings, location: SINGAPORE })} />
         ) : null}
+        <View style={[styles.card, { backgroundColor: c.card, borderColor: c.line }]}>
+          <Text style={[styles.rowName, styles.cardTitle, { color: c.text }]}>Screen saver</Text>
+          <Text style={[styles.note, styles.cardNote, { color: c.muted }]}>
+            Shows the date, time and countdown while charging, then goes black. Lift the phone to light it again.
+          </Text>
+          <View style={styles.chips}>
+            {SCREENSAVER_CHOICES.map((choice) => {
+              const on = settings.screensaverMinutes === choice.minutes;
+              return (
+                <Pressable
+                  key={choice.label}
+                  accessibilityRole="button"
+                  onPress={() => apply({ ...settings, screensaverMinutes: choice.minutes })}
+                  style={[
+                    styles.chip,
+                    { borderColor: on ? c.accent : c.line, backgroundColor: on ? c.accent : 'transparent' },
+                  ]}
+                >
+                  <Text style={{ color: on ? c.accentText : c.text, fontWeight: '600' }}>{choice.label}</Text>
+                </Pressable>
+              );
+            })}
+          </View>
+          <Pressable
+            accessibilityRole="button"
+            onPress={() =>
+              IntentLauncher.startActivityAsync('android.settings.DREAM_SETTINGS').catch(() => Linking.openSettings())
+            }
+          >
+            <Text style={[styles.actionText, styles.cardLink, { color: c.accent }]}>Choose Prayer Times as my screen saver</Text>
+          </Pressable>
+        </View>
         {status ? <Text style={[styles.note, { color: c.muted }]}>{status}</Text> : null}
 
         {Platform.OS === 'android' ? (
@@ -264,5 +304,10 @@ const styles = StyleSheet.create({
   action: { borderRadius: 14, borderWidth: 1, paddingVertical: 14, alignItems: 'center' },
   actionText: { fontSize: 16, fontWeight: '600' },
   note: { fontSize: 13, textAlign: 'center' },
+  cardTitle: { fontWeight: '600', marginTop: 10 },
+  cardNote: { textAlign: 'left', marginTop: 4 },
+  chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 12 },
+  chip: { borderWidth: 1, borderRadius: 999, paddingVertical: 8, paddingHorizontal: 14 },
+  cardLink: { textAlign: 'left', marginTop: 14, marginBottom: 12 },
   link: { fontSize: 13, textAlign: 'center', textDecorationLine: 'underline' },
 });

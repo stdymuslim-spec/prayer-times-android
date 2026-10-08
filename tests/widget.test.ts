@@ -24,6 +24,13 @@ describe('buildWidgetPayload', () => {
     expect(clock).toMatch(/^\d{1,2}:\d{2} (am|pm)$/);
   });
 
+  it('carries the upcoming key Islamic dates by date and name', () => {
+    expect(payload.events[0]).toEqual(['2027-01-06', 'Israk Mikraj']);
+    expect(payload.events).toHaveLength(9);
+    const early = buildWidgetPayload(atTime('2026-01-01', '10:00'), SINGAPORE, 1);
+    expect(early.events).toHaveLength(18);
+  });
+
   it('serialises to compact JSON the native widget can read', () => {
     const json = JSON.stringify(payload);
     expect(JSON.parse(json).days['2026-10-08'][0]).toBe('Thu, 8 Oct 2026');
