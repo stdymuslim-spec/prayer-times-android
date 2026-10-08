@@ -17,8 +17,12 @@ export interface WidgetPayload {
   days: Record<string, [string, string]>;
   /** [name, epoch milliseconds, clock text], in time order. */
   prayers: [string, number, string][];
-  /** Key Islamic dates from today on: [yyyy-mm-dd, name]. The screensaver shows one on its day. */
-  events: [string, string][];
+  /** Key Islamic dates from today on: [yyyy-mm-dd, name, Hijri text, short Gregorian text]. */
+  events: [string, string, string, string][];
+}
+
+export function shortGregorianLabel(date: Date): string {
+  return date.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' });
 }
 
 export function gregorianLabel(date: Date): string {
@@ -36,6 +40,9 @@ export function buildWidgetPayload(now: Date, location: LocationSettings, days =
   const prayers = upcomingPrayers(now, days, location).map(
     (p): [string, number, string] => [p.name, p.time.getTime(), formatClock(p.time)],
   );
-  const events = KEY_DATES.filter((k) => k.date >= today).map((k): [string, string] => [k.date, k.name]);
+  const events = KEY_DATES.filter((k) => k.date >= today).map((k): [string, string, string, string] => {
+    const [y, m, d] = k.date.split('-').map(Number);
+    return [k.date, k.name, k.hijri, shortGregorianLabel(new Date(y, m - 1, d))];
+  });
   return { days: dayMap, prayers, events };
 }

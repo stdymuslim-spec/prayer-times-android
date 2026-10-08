@@ -4,6 +4,15 @@ import android.content.Context
 import org.json.JSONObject
 import java.time.LocalDate
 import java.time.ZoneId
+import java.time.temporal.ChronoUnit
+
+/** A key Islamic date shown on the larger widget. */
+data class EventLine(
+  val name: String,
+  val hijri: String,
+  val gregorian: String,
+  val daysAway: Long,
+)
 
 /** What the widgets show right now, worked out from the saved payload. */
 data class WidgetState(
@@ -14,6 +23,8 @@ data class WidgetState(
   val prayerAtMillis: Long?,
   /** A key Islamic date that falls today, if any. */
   val todayEvent: String?,
+  /** The next two key Islamic dates from today on. */
+  val events: List<EventLine>,
   /** When to redraw next: the next prayer, or midnight when the date changes. */
   val nextRefreshAtMillis: Long,
 )
@@ -40,7 +51,7 @@ object PrayerWidgetStore {
     val today = LocalDate.now(zone)
     val midnight = today.plusDays(1).atStartOfDay(zone).toInstant().toEpochMilli()
     val raw = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getString(KEY, null)
-      ?: return WidgetState("", "Open Prayer Times", null, null, null, null, midnight)
+      ?: return WidgetState("", "Open Prayer Times", null, null, null, null, emptyList(), midnight)
 
     return try {
       val root = JSONObject(raw)
@@ -63,19 +74,22 @@ object PrayerWidgetStore {
       }
 
       var todayEvent: String? = null
+      val upcoming = ArrayList<EventLine>()
       val list = root.optJSONArray("events")
       if (list != null) {
         for (i in 0 until list.length()) {
           val e = list.getJSONArray(i)
-          if (LocalDate.parse(e.getString(0)) == today) {
-            todayEvent = e.getString(1)
-            break
+          val date = LocalDate.parse(e.getString(0))
+          if (date == today && todayEvent == null) todayEvent = e.getString(1)
+          val days = ChronoUnit.DAYS.between(today, date)
+          if (days >= 0 && upcoming.size < 2 && e.length() >= 4) {
+            upcoming.add(EventLine(e.getString(1), e.getString(2), e.getString(3), days))
           }
         }
       }
-      WidgetState(gregorian, hijri, name, clock, at, todayEvent, if (at != null) minOf(at, midnight) else midnight)
+      WidgetState(gregorian, hijri, name, clock, at, todayEvent, upcoming, if (at != null) minOf(at, midnight) else midnight)
     } catch (e: Exception) {
-      WidgetState("", "Open Prayer Times", null, null, null, null, midnight)
+      WidgetState("", "Open Prayer Times", null, null, null, null, emptyList(), midnight)
     }
   }
 }

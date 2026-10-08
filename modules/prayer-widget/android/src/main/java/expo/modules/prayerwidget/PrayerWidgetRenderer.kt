@@ -7,6 +7,7 @@ import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.os.Build
+import android.view.View
 import android.widget.RemoteViews
 
 /** Draws the home-screen widget from the saved payload and keeps its alarms. */
@@ -31,13 +32,15 @@ object PrayerWidgetRenderer {
   fun refreshAll(context: Context) {
     val manager = AppWidgetManager.getInstance(context)
     val smallIds = idsOf(manager, context, PrayerWidgetProvider::class.java)
-    if (smallIds.isEmpty()) {
+    val largeIds = idsOf(manager, context, PrayerKeyDatesWidgetProvider::class.java)
+    if (smallIds.isEmpty() && largeIds.isEmpty()) {
       cancelAlarms(context)
       return
     }
     val now = System.currentTimeMillis()
     val state = PrayerWidgetStore.state(context, now)
     for (id in smallIds) manager.updateAppWidget(id, renderSmall(context, state, now))
+    for (id in largeIds) manager.updateAppWidget(id, renderLarge(context, state, now))
     scheduleTick(context, state.nextRefreshAtMillis)
     scheduleMinuteTick(context, state, now)
   }
@@ -52,6 +55,12 @@ object PrayerWidgetRenderer {
     val minutes = maxOf(0L, (remainingMillis + 59_999) / 60_000)
     val span = if (minutes >= 60) "${minutes / 60}h ${minutes % 60}m" else "${minutes}m"
     return "$prayer in $span"
+  }
+
+  fun whenLabel(days: Long): String = when {
+    days <= 0L -> "Today"
+    days == 1L -> "Tomorrow"
+    else -> "in $days days"
   }
 
   private fun exactAllowed(alarms: AlarmManager) =
@@ -106,6 +115,29 @@ object PrayerWidgetRenderer {
   private fun renderSmall(context: Context, state: WidgetState, now: Long): RemoteViews {
     val views = RemoteViews(context.packageName, R.layout.prayer_widget)
     fillTopRow(views, state, now)
+    openAppOnTap(context, views)
+    return views
+  }
+
+  private fun renderLarge(context: Context, state: WidgetState, now: Long): RemoteViews {
+    val views = RemoteViews(context.packageName, R.layout.prayer_keydates_widget)
+    fillTopRow(views, state, now)
+
+    val names = intArrayOf(R.id.event1_name, R.id.event2_name)
+    val details = intArrayOf(R.id.event1_detail, R.id.event2_detail)
+    val whens = intArrayOf(R.id.event1_when, R.id.event2_when)
+    val rows = intArrayOf(R.id.event1_row, R.id.event2_row)
+    for (i in rows.indices) {
+      val event = state.events.getOrNull(i)
+      if (event == null) {
+        views.setViewVisibility(rows[i], View.GONE)
+      } else {
+        views.setViewVisibility(rows[i], View.VISIBLE)
+        views.setTextViewText(names[i], event.name)
+        views.setTextViewText(details[i], event.hijri)
+        views.setTextViewText(whens[i], "${event.gregorian} · ${whenLabel(event.daysAway)}")
+      }
+    }
     openAppOnTap(context, views)
     return views
   }

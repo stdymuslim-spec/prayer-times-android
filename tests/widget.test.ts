@@ -24,8 +24,8 @@ describe('buildWidgetPayload', () => {
     expect(clock).toMatch(/^\d{1,2}:\d{2} (am|pm)$/);
   });
 
-  it('carries the upcoming key Islamic dates by date and name', () => {
-    expect(payload.events[0]).toEqual(['2027-01-06', 'Israk Mikraj']);
+  it('carries the upcoming key Islamic dates with Hijri and short Gregorian text', () => {
+    expect(payload.events[0]).toEqual(['2027-01-06', 'Israk Mikraj', '27 Rejab 1448H', 'Wed 6 Jan']);
     expect(payload.events).toHaveLength(9);
     const early = buildWidgetPayload(atTime('2026-01-01', '10:00'), SINGAPORE, 1);
     expect(early.events).toHaveLength(18);
