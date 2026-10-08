@@ -17,8 +17,6 @@ import { loadSettings, saveSettings } from './src/services/storage';
 import { QiblaScreen } from './src/ui/QiblaScreen';
 import { usePalette, type Palette } from './src/theme';
 
-const PACKAGE = 'com.stdymuslim.prayertimes';
-
 const SCREENSAVER_CHOICES = [
   { label: '5 min', minutes: 5 },
   { label: '10 min', minutes: 10 },
@@ -340,7 +338,10 @@ function Main() {
             If reminders arrive late, set this app to “Unrestricted” in battery settings.
           </Text>
         ) : null}
-        <Text style={[styles.note, { color: c.muted }]}>{PACKAGE}</Text>
+        <View style={styles.footer}>
+          <Text style={[styles.footerName, { color: c.muted }]}>Prayer Times SG</Text>
+          <Text style={[styles.note, { color: c.muted }]}>stdymuslim@gmail.com</Text>
+        </View>
       </ScrollView>
     </SafeAreaView>
   );
@@ -392,6 +393,8 @@ const styles = StyleSheet.create({
   note: { fontSize: 13, textAlign: 'center' },
   banner: { paddingVertical: 14, gap: 6 },
   bannerText: { textAlign: 'left' },
+  footer: { alignItems: 'center', gap: 2, marginTop: 8, marginBottom: 12 },
+  footerName: { fontSize: 14, fontWeight: '600' },
   cardTitle: { fontWeight: '600', marginTop: 10 },
   cardNote: { textAlign: 'left', marginTop: 4 },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 12 },
