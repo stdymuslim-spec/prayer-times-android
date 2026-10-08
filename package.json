@@ -1,6 +1,12 @@
 {
   "name": "prayer-times-android",
   "version": "1.0.0",
+  "description": "Prayer times, Hijri date, Qibla compass, widget and screensaver for Singapore, on Android.",
+  "license": "GPL-3.0-or-later",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/stdymuslim-spec/prayer-times-android.git"
+  },
   "main": "index.ts",
   "private": true,
   "scripts": {
