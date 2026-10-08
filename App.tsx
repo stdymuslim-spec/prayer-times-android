@@ -44,6 +44,8 @@ function Main() {
   const [now, setNow] = useState(() => new Date());
   const [allowed, setAllowed] = useState(true);
   const [status, setStatus] = useState<string | null>(null);
+  // Messages from the Sounds card (sound changes and the tests), shown inside that card.
+  const [soundStatus, setSoundStatus] = useState<string | null>(null);
   const [screen, setScreen] = useState<'home' | 'qibla'>('home');
   // Somewhere the phone is that differs from the saved location, waiting for the user to decide.
   const [candidate, setCandidate] = useState<Settings['location'] | null>(null);
@@ -163,9 +165,9 @@ function Main() {
       createSoundChannel(channelId, kind === 'reminder' ? 'Reminder before prayer (your sound)' : 'Prayer time (your sound)', picked.uri);
       if (current) deleteSoundChannel(current.channelId);
       await apply({ ...settings, sounds: { ...settings.sounds, [kind]: { uri: picked.uri, title: picked.title, channelId } } });
-      setStatus(null);
+      setSoundStatus(null);
     } catch (e) {
-      setStatus(`Could not change the sound: ${(e as Error).message}`);
+      setSoundStatus(`Could not change the sound: ${(e as Error).message}`);
     }
   };
 
@@ -182,19 +184,19 @@ function Main() {
 
   const runTest = async (kind: 'reminder' | 'prayer') => {
     try {
-      setStatus('Sending…');
+      setSoundStatus('Sending…');
       if (!(await notifications.notificationsAllowed())) {
-        setStatus('Notifications are off for this app. Allow them in settings.');
+        setSoundStatus('Notifications are off for this app. Allow them in settings.');
         return;
       }
       const shown = await notifications.sendTest(kind, settings, testPrayer);
-      setStatus(
+      setSoundStatus(
         shown
           ? 'Sent. If you heard nothing, check the phone volume and Silent mode.'
           : 'Sent, but Android did not show it. Check this app’s notification settings.',
       );
     } catch (e) {
-      setStatus(`Test failed: ${(e as Error).message}`);
+      setSoundStatus(`Test failed: ${(e as Error).message}`);
     }
   };
 
@@ -221,6 +223,24 @@ function Main() {
         <Text style={[styles.place, { color: c.text }]}>
           {settings.location.label} · {day.source === 'official' ? 'Official timetable' : 'Calculated'}
         </Text>
+        <View style={styles.links}>
+          <Pressable accessibilityRole="button" onPress={useMyLocation} hitSlop={8}>
+            <Text style={[styles.link, { color: c.accent }]}>Use my location</Text>
+          </Pressable>
+          {settings.location.source === 'gps' ? (
+            <>
+              <Text style={[styles.linkDot, { color: c.muted }]}>·</Text>
+              <Pressable
+                accessibilityRole="button"
+                onPress={() => apply({ ...settings, location: SINGAPORE })}
+                hitSlop={8}
+              >
+                <Text style={[styles.link, { color: c.accent }]}>Back to Singapore</Text>
+              </Pressable>
+            </>
+          ) : null}
+        </View>
+        {status ? <Text style={[styles.note, styles.statusLine, { color: c.muted }]}>{status}</Text> : null}
 
         {candidate && settings.declinedPlace !== placeKey(candidate) ? (
           <View style={[styles.card, styles.banner, { backgroundColor: c.card, borderColor: c.warn }]}>
@@ -314,16 +334,6 @@ function Main() {
           />
         </View>
 
-        <Action
-          c={c}
-          title={`Test ${settings.reminderMinutes}-minute reminder`}
-          onPress={() => runTest('reminder')}
-        />
-        <Action c={c} title="Test prayer time" onPress={() => runTest('prayer')} />
-        <Action c={c} title="Use my location" onPress={useMyLocation} />
-        {settings.location.source === 'gps' ? (
-          <Action c={c} title="Back to Singapore" onPress={() => apply({ ...settings, location: SINGAPORE })} />
-        ) : null}
         <View style={[styles.card, { backgroundColor: c.card, borderColor: c.line }]}>
           <Text style={[styles.rowName, styles.cardTitle, { color: c.text }]}>Sounds</Text>
           {(['reminder', 'prayer'] as const).map((kind) => {
@@ -343,6 +353,9 @@ function Main() {
                     <Text style={[styles.actionText, { color: c.muted }]}>Reset</Text>
                   </Pressable>
                 ) : null}
+                <Pressable accessibilityRole="button" onPress={() => runTest(kind)} style={styles.soundLink}>
+                  <Text style={[styles.actionText, { color: c.accent }]}>Test</Text>
+                </Pressable>
                 <Pressable accessibilityRole="button" onPress={() => chooseSound(kind)} style={styles.soundLink}>
                   <Text style={[styles.actionText, { color: c.accent }]}>Change</Text>
                 </Pressable>
@@ -352,6 +365,7 @@ function Main() {
           <Text style={[styles.note, styles.cardNote, styles.soundHint, { color: c.muted }]}>
             Pick any notification sound. To use your own audio file, choose the add option in the picker.
           </Text>
+          {soundStatus ? <Text style={[styles.note, styles.cardNote, styles.soundHint, { color: c.muted }]}>{soundStatus}</Text> : null}
         </View>
         <View style={[styles.card, { backgroundColor: c.card, borderColor: c.line }]}>
           <Text style={[styles.rowName, styles.cardTitle, { color: c.text }]}>Screen saver</Text>
@@ -385,7 +399,6 @@ function Main() {
             <Text style={[styles.actionText, styles.cardLink, { color: c.accent }]}>Choose Prayer Times as my screen saver</Text>
           </Pressable>
         </View>
-        {status ? <Text style={[styles.note, { color: c.muted }]}>{status}</Text> : null}
 
         {Platform.OS === 'android' ? (
           <Text
@@ -454,6 +467,9 @@ const styles = StyleSheet.create({
   note: { fontSize: 13, textAlign: 'center' },
   banner: { paddingVertical: 14, gap: 6 },
   bannerText: { textAlign: 'left' },
+  links: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: -6 },
+  statusLine: { textAlign: 'left', marginTop: -4 },
+  linkDot: { fontSize: 14 },
   footer: { alignItems: 'center', gap: 2, marginTop: 8, marginBottom: 12 },
   footerName: { fontSize: 14, fontWeight: '600' },
   soundRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 8, gap: 4 },
