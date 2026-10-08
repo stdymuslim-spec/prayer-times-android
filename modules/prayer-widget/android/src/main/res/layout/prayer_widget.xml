@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- One row (4x1), transparent: the dates on the left, "Subuh in 8h 56m" on the right.
+     A soft shadow on every line keeps the text readable on any wallpaper. -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+  android:id="@+id/widget_root"
+  android:layout_width="match_parent"
+  android:layout_height="match_parent"
+  android:background="@drawable/prayer_widget_bg"
+  android:gravity="center_vertical"
+  android:orientation="horizontal"
+  android:paddingHorizontal="14dp"
+  android:paddingVertical="6dp">
+
+  <LinearLayout
+    android:layout_width="0dp"
+    android:layout_height="wrap_content"
+    android:layout_weight="5"
+    android:orientation="vertical">
+
+    <TextView
+      android:id="@+id/widget_gregorian"
+      android:layout_width="match_parent"
+      android:layout_height="wrap_content"
+      android:autoSizeMaxTextSize="17sp"
+      android:autoSizeMinTextSize="8sp"
+      android:autoSizeTextType="uniform"
+      android:maxLines="1"
+      android:shadowColor="#B3000000"
+      android:shadowDx="0"
+      android:shadowDy="1"
+      android:shadowRadius="3"
+      android:textColor="#DDE8E1"
+      android:textStyle="bold" />
+
+    <TextView
+      android:id="@+id/widget_hijri"
+      android:layout_width="match_parent"
+      android:layout_height="wrap_content"
+      android:autoSizeMaxTextSize="13sp"
+      android:autoSizeMinTextSize="8sp"
+      android:autoSizeTextType="uniform"
+      android:maxLines="1"
+      android:shadowColor="#B3000000"
+      android:shadowDx="0"
+      android:shadowDy="1"
+      android:shadowRadius="3"
+      android:textColor="#6FD6B0"
+      android:textStyle="normal" />
+  </LinearLayout>
+
+  <TextView
+    android:id="@+id/widget_countdown"
+    android:layout_width="0dp"
+    android:layout_height="wrap_content"
+    android:layout_marginStart="10dp"
+    android:layout_weight="4"
+    android:autoSizeMaxTextSize="20sp"
+    android:autoSizeMinTextSize="10sp"
+    android:autoSizeTextType="uniform"
+    android:gravity="end"
+    android:maxLines="1"
+    android:shadowColor="#B3000000"
+    android:shadowDx="0"
+    android:shadowDy="1"
+    android:shadowRadius="3"
+    android:textColor="#FFFFFF"
+    android:textStyle="bold" />
+</LinearLayout>
