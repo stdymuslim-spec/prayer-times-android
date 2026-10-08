@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The widget itself is transparent; its picker preview sits on a dark card so the text reads on any theme. -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">
+  <solid android:color="#F2101A15" />
+  <corners android:radius="20dp" />
+</shape>

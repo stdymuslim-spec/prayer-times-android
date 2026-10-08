@@ -8,6 +8,8 @@
   android:minResizeHeight="90dp"
   android:resizeMode="horizontal|vertical"
   android:updatePeriodMillis="1800000"
+  android:previewImage="@drawable/prayer_keydates_widget_preview"
+  android:previewLayout="@layout/prayer_keydates_widget_preview"
   android:initialLayout="@layout/prayer_keydates_widget"
   android:widgetCategory="home_screen"
   android:description="@string/prayer_keydates_widget_description" />

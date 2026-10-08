@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Picker preview of the one-row widget, with sample text. -->
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+  android:layout_width="match_parent"
+  android:layout_height="match_parent">
+
+  <LinearLayout
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@drawable/prayer_widget_preview_bg"
+    android:gravity="center_vertical"
+    android:orientation="vertical"
+    android:paddingHorizontal="14dp"
+    android:paddingVertical="6dp">
+    <LinearLayout
+      android:layout_width="match_parent"
+      android:layout_height="wrap_content"
+      android:gravity="center_vertical"
+      android:orientation="horizontal">
+
+      <LinearLayout
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="5"
+        android:orientation="vertical">
+      <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:maxLines="1"
+        android:text="Thu, 8 Oct 2026"
+        android:textColor="#DDE8E1"
+        android:autoSizeMaxTextSize="16sp"
+        android:autoSizeMinTextSize="7sp"
+        android:autoSizeTextType="uniform"
+        android:textStyle="bold" />
+      <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:maxLines="1"
+        android:text="26 Rabiulakhir 1448H"
+        android:textColor="#6FD6B0"
+        android:autoSizeMaxTextSize="12sp"
+        android:autoSizeMinTextSize="7sp"
+        android:autoSizeTextType="uniform" />
+      </LinearLayout>
+      <TextView
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="4"
+        android:layout_marginStart="10dp"
+        android:gravity="end"
+        android:maxLines="1"
+        android:text="Subuh in 6h 48m"
+        android:textColor="#FFFFFF"
+        android:autoSizeMaxTextSize="18sp"
+        android:autoSizeMinTextSize="7sp"
+        android:autoSizeTextType="uniform"
+        android:textStyle="bold" />
+    </LinearLayout>
+  </LinearLayout>
+</FrameLayout>
