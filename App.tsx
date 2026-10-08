@@ -305,7 +305,7 @@ function Main() {
           })}
         </View>
 
-        <Action c={c} title="Qibla compass" onPress={() => setScreen('qibla')} />
+        <Action c={c} title="Qibla compass" icon={<CompassIcon color={c.accent} />} onPress={() => setScreen('qibla')} />
 
         {daysLeft !== null && daysLeft < 14 ? (
           <Text style={[styles.warn, { color: c.warn }]}>
@@ -434,15 +434,66 @@ function ToggleRow(props: { c: Palette; label: string; value: boolean; onChange:
   );
 }
 
-function Action(props: { c: Palette; title: string; onPress: () => void }) {
+function Action(props: { c: Palette; title: string; onPress: () => void; icon?: React.ReactNode }) {
   return (
     <Pressable
       accessibilityRole="button"
       onPress={props.onPress}
       style={({ pressed }) => [styles.action, { backgroundColor: props.c.card, borderColor: props.c.line }, pressed && { opacity: 0.6 }]}
     >
-      <Text style={[styles.actionText, { color: props.c.accent }]}>{props.title}</Text>
+      <View style={styles.actionRow}>
+        {props.icon}
+        <Text style={[styles.actionText, { color: props.c.accent }]}>{props.title}</Text>
+      </View>
     </Pressable>
+  );
+}
+
+/** A small compass: a ring with a needle, one half solid and one half faded. Drawn with plain views. */
+function CompassIcon(props: { color: string; size?: number }) {
+  const size = props.size ?? 22;
+  const half = size * 0.15;
+  const length = size * 0.34;
+  return (
+    <View
+      style={{
+        width: size,
+        height: size,
+        borderRadius: size / 2,
+        borderWidth: 2,
+        borderColor: props.color,
+        alignItems: 'center',
+        justifyContent: 'center',
+      }}
+    >
+      <View style={{ transform: [{ rotate: '45deg' }] }}>
+        <View
+          style={{
+            width: 0,
+            height: 0,
+            borderLeftWidth: half,
+            borderRightWidth: half,
+            borderBottomWidth: length,
+            borderLeftColor: 'transparent',
+            borderRightColor: 'transparent',
+            borderBottomColor: props.color,
+          }}
+        />
+        <View
+          style={{
+            width: 0,
+            height: 0,
+            borderLeftWidth: half,
+            borderRightWidth: half,
+            borderTopWidth: length,
+            borderLeftColor: 'transparent',
+            borderRightColor: 'transparent',
+            borderTopColor: props.color,
+            opacity: 0.4,
+          }}
+        />
+      </View>
+    </View>
   );
 }
 
@@ -463,6 +514,7 @@ const styles = StyleSheet.create({
   bold: { fontWeight: '700' },
   warn: { fontSize: 14 },
   action: { borderRadius: 14, borderWidth: 1, paddingVertical: 14, alignItems: 'center' },
+  actionRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10 },
   actionText: { fontSize: 16, fontWeight: '600' },
   note: { fontSize: 13, textAlign: 'center' },
   banner: { paddingVertical: 14, gap: 6 },
