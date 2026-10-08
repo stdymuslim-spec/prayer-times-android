@@ -1,5 +1,5 @@
 import * as Location from 'expo-location';
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, Vibration, View } from 'react-native';
 
 import {
@@ -11,7 +11,7 @@ import {
   turnInstruction,
 } from '../domain/qibla';
 import type { LocationSettings } from '../domain/types';
-import { requestFix } from '../services/location';
+import * as locationService from '../services/location';
 import { usePalette } from '../theme';
 
 /**
@@ -29,30 +29,44 @@ export function QiblaScreen(props: { location: LocationSettings; onBack: () => v
   // Where the bearing is measured from: the phone's current position once found.
   const [place, setPlace] = useState<{ lat: number; lon: number; label: string; live: boolean } | null>(null);
 
+  const [locating, setLocating] = useState(true);
+  const mounted = useRef(true);
   useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      // A fresh fix, but not for ever: after 10 seconds use the saved location instead.
-      const fix = await Promise.race([
-        requestFix(),
-        new Promise<null>((resolve) => setTimeout(() => resolve(null), 10_000)),
-      ]);
-      if (cancelled) return;
-      if (fix) {
-        setPlace({
-          lat: fix.lat,
-          lon: fix.lon,
-          label: fix.label ?? `${fix.lat.toFixed(2)}, ${fix.lon.toFixed(2)}`,
-          live: true,
-        });
-      } else {
-        setPlace({ lat: props.location.lat, lon: props.location.lon, label: props.location.label, live: false });
-      }
-    })();
+    mounted.current = true;
     return () => {
-      cancelled = true;
+      mounted.current = false;
     };
+  }, []);
+
+  // Asks for a fresh fix. Used on opening and again whenever the user taps Refresh. It gives up after
+  // 25 seconds, keeping the last good position if there is one, else the saved location.
+  const locate = useCallback(async () => {
+    setLocating(true);
+    const fix = await Promise.race([
+      locationService.requestFix(),
+      new Promise<null>((resolve) => setTimeout(() => resolve(null), 25_000)),
+    ]);
+    if (!mounted.current) return;
+    if (fix) {
+      setPlace({
+        lat: fix.lat,
+        lon: fix.lon,
+        label: fix.label ?? `${fix.lat.toFixed(2)}, ${fix.lon.toFixed(2)}`,
+        live: true,
+      });
+    } else {
+      setPlace((previous) =>
+        previous?.live
+          ? previous
+          : { lat: props.location.lat, lon: props.location.lon, label: props.location.label, live: false },
+      );
+    }
+    setLocating(false);
   }, [props.location]);
+
+  useEffect(() => {
+    locate();
+  }, [locate]);
 
   const bearing = place ? qiblaBearing(place) : 0;
   const km = place ? Math.round(distanceToKaabaKm(place)) : 0;
@@ -119,10 +133,19 @@ export function QiblaScreen(props: { location: LocationSettings; onBack: () => v
             {km.toLocaleString('en-GB')} km to Mecca
           </Text>
           <Text style={[styles.hint, { color: place.live ? c.accent : c.warn }]}>
-            {place.live
-              ? 'Using your current location'
-              : 'Could not get your current location, so using your saved one. Check the location permission.'}
+            {locating
+              ? 'Finding where you are…'
+              : place.live
+                ? 'Using your current location'
+                : `Could not get a fresh location${
+                    locationService.lastFixProblem ? ` (${locationService.lastFixProblem})` : ''
+                  }, so using your saved one.`}
           </Text>
+          <Pressable accessibilityRole="button" onPress={locate} disabled={locating} hitSlop={8}>
+            <Text style={[styles.refresh, { color: locating ? c.muted : c.accent }]}>
+              {locating ? 'Looking…' : 'Refresh my location'}
+            </Text>
+          </Pressable>
         </>
       ) : (
         <Text style={[styles.sub, { color: c.muted }]}>Finding where you are…</Text>
@@ -204,4 +227,5 @@ const styles = StyleSheet.create({
   kaaba: { marginTop: 8, fontSize: 40 },
   instruction: { fontSize: 24, fontWeight: '700', textAlign: 'center', marginTop: 4 },
   hint: { fontSize: 13, textAlign: 'center' },
+  refresh: { fontSize: 14, fontWeight: '600', textDecorationLine: 'underline', textAlign: 'center' },
 });

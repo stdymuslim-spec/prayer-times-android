@@ -37,17 +37,47 @@ async function placeFor(lat: number, lon: number): Promise<{ label: string | nul
   }
 }
 
-/** Asks for permission if needed, then a fresh fix. Null if refused or unavailable. */
+/** Why the last call to requestFix came back empty, for showing to the user. */
+export let lastFixProblem: string | null = null;
+
+async function currentPosition(accuracy: Location.Accuracy, seconds: number): Promise<Location.LocationObject | null> {
+  try {
+    return await Promise.race([
+      Location.getCurrentPositionAsync({ accuracy }),
+      new Promise<null>((resolve) => setTimeout(() => resolve(null), seconds * 1000)),
+    ]);
+  } catch (e) {
+    lastFixProblem = (e as Error).message;
+    return null;
+  }
+}
+
+/**
+ * Asks for permission if needed, then the phone's position: a fresh balanced fix, then a quick low-accuracy
+ * one, then a cached position from the last 15 minutes. Null if refused or unavailable (see lastFixProblem).
+ */
 export async function requestFix(): Promise<LocationFix | null> {
+  lastFixProblem = null;
   try {
     const existing = await Location.getForegroundPermissionsAsync();
     const asked = existing.granted ? existing : await Location.requestForegroundPermissionsAsync();
     const permission = await offerPrecise(asked);
-    if (!permission.granted) return null;
-    const position = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+    if (!permission.granted) {
+      lastFixProblem = 'location permission is off';
+      return null;
+    }
+    const position =
+      (await currentPosition(Location.Accuracy.Balanced, 8)) ??
+      (await currentPosition(Location.Accuracy.Low, 6)) ??
+      (await Location.getLastKnownPositionAsync({ maxAge: 15 * 60_000 }).catch(() => null));
+    if (!position) {
+      lastFixProblem = lastFixProblem ?? 'no position came back in time';
+      return null;
+    }
     const { latitude: lat, longitude: lon } = position.coords;
     return { lat, lon, ...(await placeFor(lat, lon)) };
-  } catch {
+  } catch (e) {
+    lastFixProblem = (e as Error).message;
     return null;
   }
 }
