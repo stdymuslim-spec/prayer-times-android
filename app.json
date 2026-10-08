@@ -8,7 +8,9 @@
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "backgroundColor": "#0F1512",
-    "assetBundlePatterns": ["**/*"],
+    "assetBundlePatterns": [
+      "**/*"
+    ],
     "android": {
       "package": "com.stdymuslim.prayertimes",
       "adaptiveIcon": {
@@ -27,15 +29,17 @@
         "android.permission.WAKE_LOCK",
         "android.permission.ACCESS_COARSE_LOCATION"
       ],
-      "blockedPermissions": ["android.permission.RECORD_AUDIO", "android.permission.ACCESS_FINE_LOCATION"]
+      "blockedPermissions": [
+        "android.permission.RECORD_AUDIO",
+        "android.permission.ACCESS_FINE_LOCATION"
+      ]
     },
     "plugins": [
       [
         "expo-notifications",
         {
           "color": "#1F7A5C",
-          "defaultChannel": "reminder-chime-v1",
-          "sounds": ["./assets/audio/call_to_prayer.mp3", "./assets/audio/reminder.mp3"]
+          "defaultChannel": "reminder-chime-v1"
         }
       ],
       [
@@ -44,7 +48,14 @@
           "locationWhenInUsePermission": "Used once to work out prayer times for where you are. Never tracked or shared."
         }
       ],
-      ["expo-build-properties", { "android": { "minSdkVersion": 26 } }]
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "minSdkVersion": 26
+          }
+        }
+      ]
     ]
   }
 }

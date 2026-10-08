@@ -9,6 +9,8 @@ before and at each prayer, shows the Hijri date, and points to the Qibla. It is 
   call to prayer. They are set with Android's alarm system, so they arrive with the app closed.
 - **Silent and Pause:** Silent keeps the pop-ups but drops the sound. Pause stops notifications completely.
   Test buttons check both notifications.
+- **Your own sounds:** choose any notification sound for the reminder and for the call to prayer, or add your own
+  audio file, from the **Sounds** buttons in the app. They open Android's own sound settings.
 - **Official times in Singapore, calculated times elsewhere:** the official MUIS prayer timetable for 2026 and
   2027 is built in. Anywhere else, or after 2027, times are calculated for where you are.
 - **Asks before changing place:** when you open the app it checks where you are. If that differs from the saved
@@ -32,9 +34,14 @@ location service may look up the place name.
 
 Android 8.0 or later. If reminders arrive late, set the app to **Unrestricted** in its battery settings.
 
+The app does not come with a chime or a call to prayer. It uses Android's default notification sound until you
+pick one. Open **Sounds** in the app and choose the sound you want for each.
+
 ## Build from source
 
-You need Node 20 or later, JDK 17 and the Android SDK.
+You need Node 20 or later, JDK 17 and the Android SDK. To bundle sounds of your own, put them in `assets/audio/`
+as `reminder.mp3` (the reminder) and `call_to_prayer.mp3` (the call to prayer) before building. They are ignored
+by Git, and the build works without them.
 
 ```bash
 npm install
@@ -69,6 +76,7 @@ prayer times and estimated Hijri dates. To extend them, download the new yearly 
 | `src/services/` | notifications, location and storage |
 | `modules/prayer-widget/` | the Android widget and screen saver (Kotlin) |
 | `tools/make_icon.py` | draws the app icon |
+| `app.config.js` | adds the sound files to the build only if they are present |
 
 ## Credits
 
@@ -76,10 +84,8 @@ prayer times and estimated Hijri dates. To extend them, download the new yearly 
   [muis.gov.sg](https://www.muis.gov.sg/resources/islamic-calendar/). This project is not affiliated with or
   endorsed by MUIS. Please check the official publications if a time matters.
 - **Calculated times:** [adhan](https://github.com/batoulapps/adhan-js) (MIT).
-- **Reminder sound:** "Notification 11" by soundreality on [Pixabay](https://pixabay.com/).
-- **Call to prayer:** from [Zedge](https://www.zedge.net/).
 
-The two sound files in `assets/audio/` belong to their creators and are **not** covered by this project's licence.
+This repository contains no audio files.
 
 The Qibla direction is the great-circle bearing to the Kaaba (21.4225° N, 39.8262° E). A phone compass is good to a
 few degrees, so use it as a guide.
@@ -89,4 +95,4 @@ few degrees, so use it as a guide.
 Prayer Times SG is free software: you can redistribute it and modify it under the terms of the
 [GNU General Public License](LICENSE) as published by the Free Software Foundation, either version 3 of the
 License, or (at your option) any later version. It is distributed in the hope that it will be useful, but without
-any warranty. The sound files and the MUIS data are excluded, as described above.
+any warranty. The MUIS data is excluded, as described above.

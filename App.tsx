@@ -17,6 +17,8 @@ import { loadSettings, saveSettings } from './src/services/storage';
 import { QiblaScreen } from './src/ui/QiblaScreen';
 import { usePalette, type Palette } from './src/theme';
 
+const APP_PACKAGE = 'com.stdymuslim.prayertimes';
+
 const SCREENSAVER_CHOICES = [
   { label: '5 min', minutes: 5 },
   { label: '10 min', minutes: 10 },
@@ -145,6 +147,16 @@ function Main() {
     await apply({ ...settings, location: moved });
     setStatus(null);
   };
+
+  // Android keeps the sound with each notification type, so its own settings page is the picker:
+  // any system sound, or "add" one of your own audio files.
+  const openSoundSettings = (kind: 'reminder' | 'prayer') =>
+    IntentLauncher.startActivityAsync('android.settings.CHANNEL_NOTIFICATION_SETTINGS', {
+      extra: {
+        'android.provider.extra.APP_PACKAGE': APP_PACKAGE,
+        'android.provider.extra.CHANNEL_ID': notifications.soundChannelId(kind),
+      },
+    }).catch(() => Linking.openSettings());
 
   const testPrayer: PrayerName = next?.name ?? 'Asar';
 
@@ -292,6 +304,20 @@ function Main() {
         {settings.location.source === 'gps' ? (
           <Action c={c} title="Back to Singapore" onPress={() => apply({ ...settings, location: SINGAPORE })} />
         ) : null}
+        <View style={[styles.card, { backgroundColor: c.card, borderColor: c.line }]}>
+          <Text style={[styles.rowName, styles.cardTitle, { color: c.text }]}>Sounds</Text>
+          <Text style={[styles.note, styles.cardNote, { color: c.muted }]}>
+            Choose any notification sound, or add your own audio file, in Android&apos;s sound settings.
+          </Text>
+          <Pressable accessibilityRole="button" onPress={() => openSoundSettings('reminder')}>
+            <Text style={[styles.actionText, styles.cardLink, { color: c.accent }]}>
+              Change the {settings.reminderMinutes}-minute reminder sound
+            </Text>
+          </Pressable>
+          <Pressable accessibilityRole="button" onPress={() => openSoundSettings('prayer')}>
+            <Text style={[styles.actionText, styles.cardLink, { color: c.accent }]}>Change the call to prayer sound</Text>
+          </Pressable>
+        </View>
         <View style={[styles.card, { backgroundColor: c.card, borderColor: c.line }]}>
           <Text style={[styles.rowName, styles.cardTitle, { color: c.text }]}>Screen saver</Text>
           <Text style={[styles.note, styles.cardNote, { color: c.muted }]}>

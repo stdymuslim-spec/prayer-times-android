@@ -47,3 +47,6 @@ yarn-error.*
 modules/**/android/build/
 modules/**/android/.gradle/
 modules/**/android/.cxx/
+
+# Notification sounds are not distributed with the source (see README); add your own here.
+assets/audio/*.mp3

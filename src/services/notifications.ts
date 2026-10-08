@@ -5,6 +5,7 @@
  * permanent channel id — never edit a channel in place, add a new id.
  */
 
+import Constants from 'expo-constants';
 import * as Notifications from 'expo-notifications';
 import { Platform } from 'react-native';
 
@@ -25,10 +26,28 @@ Notifications.setNotificationHandler({
   }),
 });
 
+// Which sound files were bundled into this build (see app.config.js). Channels are immutable once
+// created, so a build with a bundled sound and one without use different channel ids.
+const bundled = ((Constants.expoConfig?.extra as { sounds?: Record<string, boolean> } | undefined)?.sounds ?? {}) as Record<
+  string,
+  boolean
+>;
+
 const CHANNELS: Record<Kind, { chime: string; quiet: string }> = {
-  reminder: { chime: 'reminder-chime-v1', quiet: 'reminder-silent-v1' },
-  prayer: { chime: 'prayer-adhan-v1', quiet: 'prayer-silent-v1' },
+  reminder: { chime: bundled.reminder ? 'reminder-chime-v1' : 'reminder-default-v1', quiet: 'reminder-silent-v1' },
+  prayer: { chime: bundled.call_to_prayer ? 'prayer-adhan-v1' : 'prayer-default-v1', quiet: 'prayer-silent-v1' },
 };
+
+/** The sound of the loud channel: the bundled file if there is one, else Android's default. */
+const SOUND: Record<Kind, string> = {
+  reminder: bundled.reminder ? 'reminder' : 'default',
+  prayer: bundled.call_to_prayer ? 'call_to_prayer' : 'default',
+};
+
+/** The Android channel whose sound the user can change in system settings. */
+export function soundChannelId(kind: Kind): string {
+  return CHANNELS[kind].chime;
+}
 
 export function channelFor(kind: Kind, silent: boolean): string {
   return silent ? CHANNELS[kind].quiet : CHANNELS[kind].chime;
@@ -45,7 +64,7 @@ export async function configureNotifications(): Promise<void> {
   await Notifications.setNotificationChannelAsync(CHANNELS.reminder.chime, {
     ...base,
     name: 'Reminder before prayer',
-    sound: 'reminder',
+    sound: SOUND.reminder,
   });
   await Notifications.setNotificationChannelAsync(CHANNELS.reminder.quiet, {
     ...base,
@@ -55,7 +74,7 @@ export async function configureNotifications(): Promise<void> {
   await Notifications.setNotificationChannelAsync(CHANNELS.prayer.chime, {
     ...base,
     name: 'Prayer time',
-    sound: 'call_to_prayer',
+    sound: SOUND.prayer,
   });
   await Notifications.setNotificationChannelAsync(CHANNELS.prayer.quiet, {
     ...base,
