@@ -92,7 +92,6 @@ few degrees, so use it as a guide.
 
 ## Licence
 
-Prayer Times SG is free software: you can redistribute it and modify it under the terms of the
-[GNU General Public License](LICENSE) as published by the Free Software Foundation, either version 3 of the
-License, or (at your option) any later version. It is distributed in the hope that it will be useful, but without
-any warranty. The MUIS data is excluded, as described above.
+The code is released under the [MIT Licence](LICENSE), the same as
+[Prayer Times for Mac](https://github.com/stdymuslim-spec/prayer-times-mac). The MUIS data is excluded, as
+described above.
